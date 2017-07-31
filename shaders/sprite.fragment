@@ -1,0 +1,26 @@
+#version 330 core
+
+in vec3 vertexColor;
+in vec2 uv;
+
+out vec4 fragColor;
+
+uniform float u_Opacity;
+uniform bool u_ButtonPressed;
+uniform bool u_UseTexture;
+uniform sampler2D u_Texture;
+
+void main() {
+	vec4 color = texture2D(u_Texture, uv);
+	
+	if (!u_UseTexture) {
+		discard;
+	}
+	
+	if (u_ButtonPressed) {
+		color = vec4(vertexColor, 1.0f);
+	}
+	
+	fragColor = color;
+	fragColor.a *= u_Opacity;
+}

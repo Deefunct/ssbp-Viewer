@@ -1,0 +1,18 @@
+#version 330 core
+layout (location = 1) in vec2 a_UV;
+layout (location = 2) in vec3 a_Color;
+
+out vec3 vertexColor;
+out vec2 uv;
+
+uniform mat4 u_Transform;
+uniform mat4 u_View;
+uniform vec4 u_ImageOffset;
+uniform vec3 u_Quad[4];
+
+void main()
+{
+	gl_Position = u_View * u_Transform * vec4(u_Quad[gl_VertexID], 1.0f);
+	vertexColor = a_Color;
+	uv = a_UV * u_ImageOffset.xy + u_ImageOffset.zw;
+}
