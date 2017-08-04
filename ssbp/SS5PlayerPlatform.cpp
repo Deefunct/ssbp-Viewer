@@ -126,18 +126,13 @@ namespace ss
 		float v_offset = 1.0 - state.quad.bl.texCoords.v;
 		glm::vec4 uv_offset(u_scale, v_scale, u_offset, v_offset);
 		sprites.shader.setVec4v("u_ImageOffset", glm::value_ptr(uv_offset), 1);
-
 		// TEXTURE
-		//glUniform1i(glGetUniformLocation(;
 		sprites.shader.setTexture2D("u_Texture", sprites.textures[state.texture.handle - 1]->id);
 
 		const float fivTwel = 1.0f / 256.0f;
 		// VERTEX TRANSFORMATIONS
 		glm::mat4 mat = glm::make_mat4(state.mat);
-		//mat = glm::rotate(mat, glm::radians(-state.instancerotationX), glm::vec3(1.0f, 0.0f, 0.0f));
-		//mat = glm::rotate(mat, glm::radians(-state.instancerotationY), glm::vec3(0.0f, 1.0f, 0.0f));
-		//mat = glm::rotate(mat, glm::radians(-state.instancerotationZ), glm::vec3(0.0f, 0.0f, 1.0f));
-		//mat = glm::translate(mat, glm::vec3(state.x*fivTwel, state.y*fivTwel, state.z*fivTwel));
+		mat = glm::rotate(mat, glm::radians(-state.instancerotationZ), glm::vec3(0.0f, 0.0f, 1.0f));
 		sprites.shader.setMat4("u_Transform", glm::value_ptr(mat));
 		sprites.shader.setFloat("u_Opacity", state.opacity / 255.0f);
 		sprites.shader.setBool("u_UseTexture", sprites.textures[state.texture.handle - 1]->loaded);

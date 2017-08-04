@@ -880,12 +880,13 @@ public:
 		return ref;
 	}
 	
-	void dump()
+	void dump(std::vector<std::string>* anim_list)
 	{
 		std::map<std::string, AnimeRef*>::iterator it = _dic.begin();
 		while (it != _dic.end())
 		{
 			SSLOG("%s", (*it).second);
+			anim_list->push_back((*it).first);
 			++it;
 		}
 	}
@@ -960,7 +961,7 @@ protected:
 /**
  * ResourceSet
  */
-struct ResourceSet
+struct ss::ResourceSet
 {
 	const ProjectData* data;
 	bool isDataAutoRelease;
@@ -993,7 +994,6 @@ struct ResourceSet
 	}
 };
 
-
 /**
  * ResourceManager
  */
@@ -1023,12 +1023,6 @@ ResourceManager* ResourceManager::create()
 {
 	ResourceManager* obj = new ResourceManager();
 	return obj;
-}
-
-ResourceSet* ResourceManager::getData(const std::string& dataKey)
-{
-	ResourceSet* rs = _dataDic.at(dataKey);
-	return rs;
 }
 
 std::string ResourceManager::addData(const std::string& dataKey, const ProjectData* data, const std::string& imageBaseDir)
@@ -1159,6 +1153,12 @@ void ResourceManager::removeAllData()
 		removeData(ssbpName);
 	}
 	_dataDic.clear();
+}
+
+ResourceSet* ResourceManager::getData(const std::string & dataKey)
+{
+	ResourceSet* rs = _dataDic.at(dataKey);
+	return rs;
 }
 
 //データ名、セル名を指定して、セルで使用しているテクスチャを変更する
@@ -1353,7 +1353,7 @@ bool Player::isFrameSkipEnabled() const
 	return _frameSkipEnabled;
 }
 
-void Player::setData(const std::string& dataKey)
+void Player::setData(const std::string& dataKey, std::vector<std::string>* anim_list = nullptr)
 {
 	ResourceSet* rs = _resman->getData(dataKey);
 	_currentdataKey = dataKey;
@@ -1367,6 +1367,8 @@ void Player::setData(const std::string& dataKey)
 	{
 //		releaseData();
 		_currentRs = rs;
+		if(anim_list)
+			rs->animeCache->dump(anim_list);
 	}
 }
 

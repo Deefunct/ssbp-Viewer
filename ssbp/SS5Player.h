@@ -100,7 +100,7 @@ class CellCache;
 class CellRef;
 class AnimeCache;
 class AnimeRef;
-class ResourceSet;
+struct ResourceSet;
 struct ProjectData;
 class SSSize;
 class Player;
@@ -796,7 +796,7 @@ public:
 	 *
 	 * @param  dataKey  再生するデータのdataKey
 	 */
-	void setData(const std::string& dataKey);
+	void setData(const std::string& dataKey, std::vector<std::string>* anim_list);
 
 	/**
 	 * 設定されているssbpデータを解放します.

@@ -27,7 +27,7 @@ struct Quad {
 		// copy our vertex array in a vertex buffer for OpenGL to use
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		// copy cour index array in an element buffer for OpenGL to use
+		// copy our index array in an element buffer for OpenGL to use
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 		// then set the vertex attributes pointers

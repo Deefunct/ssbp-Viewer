@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 //#include <chrono>
 //#include <thread>
 
@@ -10,7 +11,7 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-#include "extra_animation_info.h"
+
 #include "texture.h"
 #include "quad.h"
 #include "sprite.h"
@@ -46,7 +47,7 @@ std::string help = // hotkeys
 "H: display this hotkey list again\n";
 
 Sprite sprites;
-
+ss::ResourceSet* resourceSet = nullptr;
 int main(int argc, char* argv[]) {
 	// glfw: initialize and configure
 	sprites.location = argv[0];
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {
 		"shaders/background.vertex",
 		"shaders/background.fragment"
 	};
-	
+	/*
 	if (argc == 1) {
 		std::cout << "Drag an ssbp file here then press enter.\n";
 		std::cin >> sprites.file_name;
@@ -72,7 +73,11 @@ int main(int argc, char* argv[]) {
 
 	}
 	else return 0;
-
+	//*/
+	//sprites.file_name = "images/ch02_00_Roy_M_Normal.ssbp"; // for debugging
+	//sprites.file_name = "images/Eliwood/ch03_06_Eliwod_M_Normal.ssbp";
+	//sprites.file_name = "images/Palla/ch01_18_Paora_F_Normal.ssbp";
+	sprites.file_name = "images/Sheeda/ch01_17_Sheeda_F_Normal.ssbp";
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -104,20 +109,15 @@ int main(int argc, char* argv[]) {
 	background.init(shader_name_list[2], shader_name_list[3]);
 	bg_Texture = new Texture((sprites.location + "shaders/background.png").c_str(), false); // load background image
 
-
-																							//glEnable(GL_CULL_FACE); //test
+	//glEnable(GL_CULL_FACE); //test
 
 	sprites.resman = ss::ResourceManager::getInstance();
 	sprites.ssPlayer = ss::Player::create();
-
-	sprites.resman->addData(sprites.file_name);
-	sprites.animation_list = readTheFile(sprites.file_name.c_str()); // retrieve animation names
-	sprites.file_name = sprites.file_name.substr(sprites.file_name.find_last_of("/\\") + 1); // remove directory & slashes from string
-	sprites.file_name = sprites.file_name.substr(0, sprites.file_name.find_last_of('.')); // remove .ssbp extension so only left with file's name
-	sprites.ssPlayer->setData(sprites.file_name);
+	
+	sprites.file_name = sprites.resman->addData(sprites.file_name);
+	sprites.ssPlayer->setData(sprites.file_name, &sprites.animation_list);
 	sprites.ssPlayer->play(sprites.animation_list[0], 1);
 	sprites.ssPlayer->setGameFPS(frame_rate);
-	//ssPlayer->frame
 
 	std::cout << help << '\n' << sprites.file_name << "\nNumber of animations: " << sprites.animation_list.size() << "\n\n" << sprites.ssPlayer->getPlayAnimeName() << std::endl;
 
