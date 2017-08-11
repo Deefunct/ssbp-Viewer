@@ -1,0 +1,7 @@
+
+*.vcxproj
+*.filters
+.vs/ssbp_viewer/v14/.suo
+images/
+Debug/
+Release/

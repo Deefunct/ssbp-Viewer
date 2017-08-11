@@ -1,7 +1,5 @@
 #include <iostream>
 #include <iomanip>
-//#include <chrono>
-//#include <thread>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -16,6 +14,14 @@
 #include "quad.h"
 #include "sprite.h"
 
+
+Sprite sprite;
+Quad background; // the background quad/plane; has its own shader
+
+const float fivTwel = 1.0f / 256.0f; // for viewport scale
+glm::vec3 mover(0.0f, -0.5f, 0.0f); // camera position
+glm::vec3 scale(fivTwel, fivTwel, 1.0f); // camera view scale
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int modifier);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -28,12 +34,8 @@ const unsigned int WIN_WIDTH = 512;
 const unsigned int WIN_HEIGHT = 512;
 float aspect_ratio = WIN_WIDTH / WIN_HEIGHT;
 float frame_rate = 60.0f;
-bool button = false; // for wireframe toggle. true if spacebar is pressed
-const float fivTwel = 1.0f / 256.0f; // for viewport scale
-Texture* bg_Texture;
-Quad background; // the background quad/plane; has its own shader
-glm::vec3 mover(0.0f, -0.5f, 0.0f); // camera position
-glm::vec3 scale(fivTwel, fivTwel, 1.0f); // camera view scale
+bool wireframe = false; // for wireframe toggle. true when wireframe mode is on
+
 std::string help = // hotkeys
 "\nA: previous animation\n"
 "S: next animation\n"
@@ -46,12 +48,11 @@ std::string help = // hotkeys
 "1, 2, 3: change animation speed\n"
 "H: display this hotkey list again\n";
 
-Sprite sprites;
-ss::ResourceSet* resourceSet = nullptr;
+
 int main(int argc, char* argv[]) {
 	// glfw: initialize and configure
-	sprites.location = argv[0];
-	sprites.location = sprites.location.substr(0, sprites.location.find_last_of("/\\") + 1);
+	sprite.dir = argv[0];
+	sprite.dir = sprite.dir.substr(0, sprite.dir.find_last_of("/\\") + 1);
 
 	std::vector<std::string> shader_name_list{
 		"shaders/sprite.vertex",
@@ -59,25 +60,26 @@ int main(int argc, char* argv[]) {
 		"shaders/background.vertex",
 		"shaders/background.fragment"
 	};
-	/*
+	//*
 	if (argc == 1) {
 		std::cout << "Drag an ssbp file here then press enter.\n";
-		std::cin >> sprites.file_name;
+		std::cin >> sprite.file_name;
 	}
 	else if (argc == 2) {
-		sprites.file_name = argv[1];
+		sprite.file_name = argv[1];
 
 		for (int i = 0; i < shader_name_list.size(); ++i) {
-			shader_name_list[i] = sprites.location + shader_name_list[i];
+			shader_name_list[i] = sprite.dir + shader_name_list[i];
 		}
 
 	}
 	else return 0;
 	//*/
-	//sprites.file_name = "images/ch02_00_Roy_M_Normal.ssbp"; // for debugging
-	//sprites.file_name = "images/Eliwood/ch03_06_Eliwod_M_Normal.ssbp";
-	//sprites.file_name = "images/Palla/ch01_18_Paora_F_Normal.ssbp";
-	sprites.file_name = "images/Sheeda/ch01_17_Sheeda_F_Normal.ssbp";
+	//sprite.file_name = "images/ch02_00_Roy_M_Normal.ssbp"; // for debugging
+	//sprite.file_name = "images/Eliwood/ch03_06_Eliwod_M_Normal.ssbp";
+	//sprite.file_name = "images/Palla/ch01_18_Paora_F_Normal.ssbp";
+	//sprite.file_name = "images/Sheeda/ch01_17_Sheeda_F_Normal.ssbp";
+
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -98,28 +100,29 @@ int main(int argc, char* argv[]) {
 	glfwSetDropCallback(window, drop_callback);
 	glfwSetWindowSizeLimits(window, WIN_WIDTH, WIN_HEIGHT, GLFW_DONT_CARE, GLFW_DONT_CARE);
 	glfwSwapInterval(frame_rate / 60); //test //0 = unlocked frame rate; 1=60fps; 2=30fps; 3=20fps
-									   // glad: load all OpenGL function pointers
+
+	// glad: load all OpenGL function pointers
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
 
 	// initialize shaders & geometry
-	sprites.init(shader_name_list[0], shader_name_list[1]);
+	sprite.init(shader_name_list[0], shader_name_list[1]);
 	background.init(shader_name_list[2], shader_name_list[3]);
-	bg_Texture = new Texture((sprites.location + "shaders/background.png").c_str(), false); // load background image
+	background.texture = new Texture((sprite.dir + "shaders/background.png").c_str(), false); // load background image
 
 	//glEnable(GL_CULL_FACE); //test
 
-	sprites.resman = ss::ResourceManager::getInstance();
-	sprites.ssPlayer = ss::Player::create();
+	sprite.resman = ss::ResourceManager::getInstance();
+	sprite.ssPlayer = ss::Player::create();
 	
-	sprites.file_name = sprites.resman->addData(sprites.file_name);
-	sprites.ssPlayer->setData(sprites.file_name, &sprites.animation_list);
-	sprites.ssPlayer->play(sprites.animation_list[0], 1);
-	sprites.ssPlayer->setGameFPS(frame_rate);
+	sprite.file_name = sprite.resman->addData(sprite.file_name);
+	sprite.ssPlayer->setData(sprite.file_name, &sprite.animation_list);
+	sprite.ssPlayer->play(sprite.animation_list[0], 1);
+	sprite.ssPlayer->setGameFPS(frame_rate);
 
-	std::cout << help << '\n' << sprites.file_name << "\nNumber of animations: " << sprites.animation_list.size() << "\n\n" << sprites.ssPlayer->getPlayAnimeName() << std::endl;
+	std::cout << help << '\n' << sprite.file_name << "\nNumber of animations: " << sprite.animation_list.size() << "\n\n" << sprite.ssPlayer->getPlayAnimeName() << std::endl;
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -133,7 +136,6 @@ int main(int argc, char* argv[]) {
 		draw(window);
 		handleEvents(window);
 	}
-	delete bg_Texture;
 	// glfw: terminate, clearing all previously allocated GLFW resources.
 	glfwTerminate();
 	return 0;
@@ -151,23 +153,23 @@ void draw(GLFWwindow* window) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	background.shader.use();
-	background.shader.setTexture2D("u_Texture", bg_Texture->id);
+	background.shader.setTexture2D("u_Texture", background.texture->id);
 	background.shader.setVec2("flip", 1.0f, 1.0f);
-	background.shader.setBool("u_UseTexture", bg_Texture->loaded);
+	background.shader.setBool("u_UseTexture", background.texture->loaded);
 	background.shader.setFloat("u_Time", glfwGetTime());
 	background.draw();
 
-	sprites.shader.use();
-	sprites.ssPlayer->update(deltaTime);	//Player update
-	sprites.draw();	//Draw a layer
+	sprite.shader.use();
+	sprite.ssPlayer->update(deltaTime);	//Player update
+	sprite.draw();	//Draw a layer
 
 	glm::mat4 view;
 	view = glm::translate(view, mover);
 	view = glm::scale(view, scale*glm::vec3(1.0f, aspect_ratio, 1.0f));
-	sprites.shader.setMat4("u_View", glm::value_ptr(view));
-	sprites.shader.setBool("u_ButtonPressed", button);
+	sprite.shader.setMat4("u_View", glm::value_ptr(view));
+	sprite.shader.setBool("u_ButtonPressed", wireframe);
 
-	sprites.shader.setFloat("u_Time", glfwGetTime());
+	sprite.shader.setFloat("u_Time", glfwGetTime());
 
 	//glfw: swap buffers and poll IO events (keys pressed/releaed, mouse moved etc.)
 	glfwSwapBuffers(window);
@@ -217,32 +219,25 @@ void handleEvents(GLFWwindow* window) {
 }
 
 void flip_view() {
-	if (bg_Texture->loaded) {
+	if (background.texture->loaded) {
 		background.shader.use();
 		background.shader.setVec2("flip", 1.0f, -1.0f);
 	}
-	sprites.shader.use();
+	sprite.shader.use();
 	glm::mat4 view;
 	scale.y = -scale.y;
 	mover.y = -mover.y;
 	view = glm::translate(view, mover);
 	view = glm::scale(view, scale*glm::vec3(1.0f, aspect_ratio, 1.0f));
-	sprites.shader.setMat4("u_View", glm::value_ptr(view));
+	sprite.shader.setMat4("u_View", glm::value_ptr(view));
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int modifier) {
-	static int anim_index = 0;
-	static float play_speed = 1.0f;
-	static bool dont_loop = true;
-
 	switch (key) {
 	case GLFW_KEY_A: case GLFW_KEY_LEFT:
 		if (action == GLFW_PRESS) {
-			anim_index = (anim_index == 0) ? sprites.animation_list.size() - 1 : --anim_index;
-			sprites.ssPlayer->play(sprites.animation_list[anim_index], dont_loop);
-			sprites.ssPlayer->setStep(play_speed);
-			std::cout << '\n' << sprites.ssPlayer->getPlayAnimeName() << std::endl;
-			sprites.unpause();
+			sprite.next_anim();
+			std::cout << '\n' << sprite.get_anim_name() << std::endl;
 		}
 		break;
 	case GLFW_KEY_C:
@@ -258,11 +253,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		break;
 	case GLFW_KEY_L:
 		if (action == GLFW_PRESS) {
-			dont_loop = !dont_loop;
-			sprites.ssPlayer->play(sprites.animation_list[anim_index], dont_loop, sprites.ssPlayer->getFrameNo());
-			sprites.ssPlayer->setStep(play_speed);
-			std::cout << "Looping " << (dont_loop ? "disabled" : "enabled") << std::endl;
-			sprites.unpause();
+			sprite.toggle_looping();
+			std::cout << "Looping " << (sprite.is_looping() ? "enabled" : "disabled") << std::endl;
 		}
 		break;
 	case GLFW_KEY_Q:
@@ -273,21 +265,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				// export every frame of the current animation
 				std::cout << "Exporting frames..." << std::endl;
 				frame = 0;
-				max_frame = sprites.ssPlayer->getMaxFrame();
+				max_frame = sprite.ssPlayer->getMaxFrame();
 			}
 			else if (modifier == false) {
 				// export single frame
-				frame = sprites.ssPlayer->getFrameNo();
+				frame = sprite.ssPlayer->getFrameNo();
 				max_frame = frame + 1;
 			}
 			else break;
 
 			// create export directory
-			std::string folder = (sprites.file_name + "_Screenshots" + "/");
+			std::string folder = (sprite.file_name + "_Screenshots" + "/");
 			std::wstring wfolder;
 			wfolder.assign(folder.begin(), folder.end());
 			CreateDirectory(wfolder.c_str(), nullptr);
-			folder = folder + sprites.ssPlayer->getPlayAnimeName() + "/";
+			folder = folder + sprite.ssPlayer->getPlayAnimeName() + "/";
 			wfolder.assign(folder.begin(), folder.end());
 			CreateDirectory(wfolder.c_str(), nullptr);
 
@@ -301,24 +293,24 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			flip_view();
 
 			float delta = 1.0f / 30.0f;
-			sprites.ssPlayer->setGameFPS(30.0f); // lock framerate to 30
-			if (!sprites.paused) { sprites.pause(); }
+			sprite.ssPlayer->setGameFPS(30.0f); // lock framerate to 30
+			if (!sprite.is_paused()) { sprite.pause(); }
 			do {
 				glClear(GL_COLOR_BUFFER_BIT);
 
-				if (bg_Texture->loaded) {
+				if (background.texture->loaded) {
 					background.shader.use();
-					background.shader.setTexture2D("u_Texture", bg_Texture->id);
+					background.shader.setTexture2D("u_Texture", background.texture->id);
 					background.draw();
 				}
 
 				// update sprite frame
-				sprites.shader.use();
-				sprites.ssPlayer->setFrameNo(frame++);
-				sprites.ssPlayer->update(delta);
-				sprites.draw();
+				sprite.shader.use();
+				sprite.ssPlayer->setFrameNo(frame++);
+				sprite.ssPlayer->update(delta);
+				sprite.draw();
 
-				image_name = sprites.ssPlayer->getPlayAnimeName() + '_' + std::to_string(sprites.ssPlayer->getFrameNo()) + ".png";
+				image_name = sprite.ssPlayer->getPlayAnimeName() + '_' + std::to_string(sprite.ssPlayer->getFrameNo()) + ".png";
 
 				// get pixels from OpenGL and save to file
 				glReadPixels(vp[0], vp[1], vp[2], vp[3], GL_RGBA, GL_UNSIGNED_BYTE, image);
@@ -327,7 +319,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 			delete[] image;
 
-			sprites.ssPlayer->setGameFPS(frame_rate); //reset framerate
+			sprite.ssPlayer->setGameFPS(frame_rate); //reset framerate
 			flip_view(); // unflip viewport
 			if (modifier == GLFW_MOD_SHIFT) std::cout << max_frame << " images saved to " << folder << std::endl;
 			else { std::cout << "Image saved: " << folder + image_name << std::endl; }
@@ -335,11 +327,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		break;
 	case GLFW_KEY_S: case GLFW_KEY_RIGHT:
 		if (action == GLFW_PRESS) {
-			anim_index = (anim_index == sprites.animation_list.size() - 1) ? 0 : ++anim_index;
-			sprites.ssPlayer->play(sprites.animation_list[anim_index], dont_loop);
-			sprites.ssPlayer->setStep(play_speed);
-			std::cout << '\n' << sprites.ssPlayer->getPlayAnimeName() << std::endl;
-			sprites.unpause();
+			sprite.previous_anim();
+			std::cout << '\n' << sprite.get_anim_name() << std::endl;
 		}
 		break;
 	case GLFW_KEY_W:
@@ -347,7 +336,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			static GLenum drawMode = GL_FILL;
 			drawMode = (drawMode == GL_LINE) ? GL_FILL : GL_LINE;
 			glPolygonMode(GL_FRONT_AND_BACK, drawMode);
-			button = !button;
+			wireframe = !wireframe;
 		}
 		break;
 	case GLFW_KEY_X:
@@ -356,68 +345,66 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		break;
 	case GLFW_KEY_SPACE:
 		if (action == GLFW_PRESS) {
-			if (dont_loop) {
-				sprites.ssPlayer->play(sprites.animation_list[anim_index]);
-				sprites.ssPlayer->setStep(play_speed);
-				sprites.ssPlayer->setLoop(1);
+			if (sprite.is_looping() == false) {
+				sprite.replay();
 				break;
 			}
-			if (sprites.paused) {
-				sprites.unpause();
-				std::cout << "Paused\n";
+			if (sprite.is_paused()) {
+				sprite.unpause();
+				std::cout << "Playing\n";
 			}
 			else {
-				sprites.pause();
-				std::cout << "Playing\n";
+				sprite.pause();
+				std::cout << "Paused\n";
 			}
 		}
 		break;
 	case GLFW_KEY_1:
 		if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+			float play_speed = sprite.get_play_speed();
 			if (play_speed <= -2.0f) break;
-			play_speed -= 0.1f;
-			sprites.ssPlayer->setStep(play_speed);
+			sprite.set_play_speed(play_speed - 0.1f);
 		}
 		else if (action == GLFW_RELEASE)
-			std::cout << setprecision(1) << std::fixed << "Play speed: " << play_speed << '\n';
+			std::cout << setprecision(1) << std::fixed << "Play speed: " << sprite.get_play_speed() << '\n';
 		break;
 	case GLFW_KEY_2:
 		if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+			float play_speed = sprite.get_play_speed();
 			if (play_speed >= 2.0f) break;
-			play_speed += 0.1f;
-			sprites.ssPlayer->setStep(play_speed);
+			sprite.set_play_speed(play_speed + 0.1f);
+			sprite.ssPlayer->setStep(play_speed);
 		}
 		else if (action == GLFW_RELEASE)
-			std::cout << setprecision(1) << std::fixed << "Play speed: " << play_speed << '\n';
+			std::cout << setprecision(1) << std::fixed << "Play speed: " << sprite.get_play_speed() << '\n';
 		break;
 	case GLFW_KEY_3:
 		if (action == GLFW_PRESS) {
-			play_speed = 1.0f;
-			sprites.ssPlayer->setStep(play_speed);
+			sprite.set_play_speed(1.0f);
 			std::cout << "Play speed reset\n";
 		}
 		break;
 	case GLFW_KEY_PERIOD: case GLFW_KEY_UP:
 		if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-			unsigned int max_frame = sprites.ssPlayer->getMaxFrame() - 1;
-			sprites.pause();
+			unsigned int max_frame = sprite.ssPlayer->getMaxFrame() - 1;
+			sprite.pause();
 			if (modifier == GLFW_MOD_SHIFT) {
-				sprites.ssPlayer->setFrameNo(max_frame);
+				sprite.ssPlayer->setFrameNo(max_frame);
 				break;
 			}
-			unsigned int current_frame = sprites.ssPlayer->getFrameNo();
-			sprites.ssPlayer->setFrameNo(current_frame + (current_frame < max_frame));
+			unsigned int current_frame = sprite.ssPlayer->getFrameNo();
+			sprite.ssPlayer->setFrameNo(current_frame + (current_frame < max_frame));
 		}
 		break;
 	case GLFW_KEY_COMMA: case GLFW_KEY_DOWN:
 		if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-			sprites.pause();
+			sprite.pause();
 			if (modifier == GLFW_MOD_SHIFT) {
-				sprites.ssPlayer->setFrameNo(0);
+				sprite.ssPlayer->setFrameNo(0);
 				break;
 			}
-			unsigned int current_frame = sprites.ssPlayer->getFrameNo();
-			sprites.ssPlayer->setFrameNo(current_frame - (current_frame > 0));
+			unsigned int current_frame = sprite.ssPlayer->getFrameNo();
+			sprite.ssPlayer->setFrameNo(current_frame - (current_frame > 0));
 		}
 		break;
 	}

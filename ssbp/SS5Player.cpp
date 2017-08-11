@@ -885,7 +885,8 @@ public:
 		std::map<std::string, AnimeRef*>::iterator it = _dic.begin();
 		while (it != _dic.end())
 		{
-			SSLOG("%s", (*it).second);
+			//SSLOG("%s", (*it).second);
+			//AnimeRef* ar = (*it).second;
 			anim_list->push_back((*it).first);
 			++it;
 		}

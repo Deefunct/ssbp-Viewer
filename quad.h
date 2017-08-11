@@ -14,8 +14,10 @@ struct Quad {
 		glDeleteVertexArrays(1, &VAO);
 		glDeleteBuffers(1, &VBO);
 		glDeleteBuffers(1, &EBO);
+		delete texture;
 	}
 	Shader shader;
+	Texture* texture = nullptr;
 	GLuint VAO=0, VBO=0, EBO=0;
 	void init(const std::string& vertexShader, const std::string& fragmentShader) {
 		shader.init(vertexShader.c_str(), fragmentShader.c_str());
